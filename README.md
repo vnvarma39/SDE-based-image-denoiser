@@ -1,2 +1,1 @@
-GMiSDE-Net
-Constraint-Aware Implicit SDE Denoising for Multiplicative Noise
+Demonstrated applicability to real-world imaging scenarios where classical filters fail.
