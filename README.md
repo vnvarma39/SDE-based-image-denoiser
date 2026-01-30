@@ -1,170 +1,153 @@
-GMiSDE-Net
-Gamma Mixture-of-Experts with Constraint-Aware Implicit SDE Denoising
-Overview
 
-This repository presents GMiSDE-Net, a principled denoising framework for multiplicative (Gamma) noise, integrating stochastic modeling with deep neural networks. The method is designed for imaging modalities such as SAR, ultrasound, and low-light imaging, where noise is signal-dependent and heteroscedastic.
 
-Unlike diffusion or score-based denoising approaches that rely on explicit forward–reverse stochastic simulation, GMiSDE-Net directly learns the terminal solution of an implicit stochastic differential equation (SDE). This design improves numerical stability, reduces computational overhead, and enables uncertainty-aware restoration.
+# **GMiSDE-Net**
 
-Key Contributions
+## **Gamma Mixture-of-Experts with Constraint-Aware Implicit SDE Denoising**
 
-Implicit SDE Denoising
-A terminal SDE formulation that avoids explicit diffusion sampling while preserving stochastic interpretability.
+---
 
-Gamma Mixture-of-Experts (MoE)
-Multiple experts specialize in different noise regimes and are adaptively selected via a learned routing mechanism.
+## **Abstract**
 
-Constraint-Aware Heteroscedastic Score Networks (CHSN)
-Each expert jointly predicts spatially varying drift, diffusion, and uncertainty parameters.
+GMiSDE-Net is a stochastic deep learning framework for denoising images corrupted by **multiplicative Gamma noise**, commonly encountered in SAR, ultrasound, and low-light imaging. The method combines a **Gamma Mixture-of-Experts (MoE)** architecture with **Constraint-Aware Heteroscedastic Score Networks (CHSN)** and an **implicit stochastic differential equation (SDE)** formulation. Unlike diffusion-based approaches that rely on explicit forward–reverse SDE simulation, the proposed model directly learns the terminal SDE solution, enabling stable, efficient, and uncertainty-aware restoration. Experimental results demonstrate strong performance across multiple datasets and noise severities, with improved robustness to noise-model mismatch.
 
-Uncertainty-Guided Aggregation
-Learned uncertainty maps regulate expert contributions, preventing over-smoothing and instability.
+---
 
-Robustness to Noise Mismatch
-The model generalizes beyond pure Gamma noise and remains stable under mixed noise conditions.
+## **Motivation**
 
-Method Summary
+Multiplicative noise presents challenges that differ fundamentally from additive Gaussian corruption:
 
-Given a noisy observation
+* Noise variance depends on the underlying signal
+* Classical statistical filters oversmooth fine structures
+* CNN denoisers are biased toward additive noise assumptions
+* Score-based diffusion models are computationally expensive and unstable for speckle noise
 
-𝑦
-=
-𝑥
-⋅
-Γ
-(
-𝑘
-,
-𝑘
-)
-,
-y=x⋅Γ(k,k),
+**GMiSDE-Net** is designed to address these issues through **explicit noise modeling**, **spatial adaptivity**, and **stochastic interpretability** without iterative sampling.
 
-the proposed model estimates a terminal SDE solution of the form
+---
 
-𝑥
-^
-=
-𝑥
-0
-+
-𝑓
-𝜃
-(
-𝑥
-0
-,
-𝜇
-(
-𝑥
-0
-)
-,
-𝜎
-(
-𝑥
-0
-)
-)
-,
-x
-^
-=x
-0
-	​
+## **Core Idea**
 
-+f
-θ
-	​
+The proposed framework models denoising as the terminal solution of a stochastic differential equation:
 
-(x
-0
-	​
+[
+\hat{x} = x_0 + f_\theta(x_0, \mu(x_0), \sigma(x_0)),
+]
 
-,μ(x
-0
-	​
+where:
 
-),σ(x
-0
-	​
+* (x_0) is the noisy observation
+* (\mu(\cdot)) and (\sigma(\cdot)) are spatially adaptive drift and diffusion terms
+* (f_\theta) is a learned implicit SDE operator
 
-)),
+Rather than simulating an SDE trajectory, the network **directly learns the terminal mapping**, achieving both efficiency and stability.
 
-where the drift 
-𝜇
-μ, diffusion 
-𝜎
-σ, and uncertainty are inferred through a mixture of constraint-aware experts.
+---
 
-Expert outputs are spatially aggregated using soft routing weights and uncertainty modulation before being passed to an implicit SDE head, which performs the final restoration in a single forward pass.
+## **Architecture Overview**
 
-Experimental Evaluation
+### **1. Gamma Mixture-of-Experts (MoE)**
 
-The model is evaluated on grayscale MNIST and CIFAR-10 with synthetic Gamma speckle noise. Performance is assessed using:
+* Multiple experts specialize in distinct noise regimes
+* A learnable router assigns soft spatial weights
+* Enables local adaptivity to heterogeneous speckle patterns
 
-PSNR (Peak Signal-to-Noise Ratio)
+### **2. Constraint-Aware Heteroscedastic Score Networks (CHSN)**
 
-SSIM (Structural Similarity Index)
+Each expert predicts:
+
+* **Drift** ((\mu)): structured correction
+* **Diffusion** ((\sigma)): noise magnitude
+* **Uncertainty**: confidence in predictions
+
+Positivity and boundedness constraints are enforced to ensure physical plausibility.
+
+### **3. Uncertainty-Guided Aggregation**
+
+Expert outputs are combined as:
+[
+\mu = \sum_i w_i \cdot \mu_i, \quad
+\sigma = \sum_i w_i \cdot \sigma_i,
+]
+with uncertainty modulating expert influence to prevent over-smoothing.
+
+### **4. Implicit SDE Head**
+
+The final restoration is computed in a **single forward pass**, eliminating reverse-time sampling while preserving stochastic semantics.
+
+---
+
+## **Key Contributions**
+
+* **Implicit SDE Denoising** without explicit diffusion simulation
+* **Mixture-of-Experts for Multiplicative Noise**, not additive assumptions
+* **Uncertainty-Aware Restoration** with spatial adaptivity
+* **Robustness to Noise Mismatch**, including mixed noise settings
+* **Reduced Hyperparameter Sensitivity**, demonstrated via ablation studies
+
+---
+
+## **Experimental Evaluation**
+
+The model is evaluated on **MNIST and CIFAR-10 (grayscale)** with synthetic Gamma speckle noise across varying severity levels.
+
+**Metrics used:**
+
+* Peak Signal-to-Noise Ratio (PSNR)
+* Structural Similarity Index (SSIM)
 
 Comparisons include:
 
-Classical CNN baselines
+* Classical CNN denoisers
+* Modern multiplicative-noise baselines
+* Architectural ablations of the proposed method
 
-Modern multiplicative-noise denoisers
+Results show consistent improvements in restoration quality and stability.
 
-Ablation variants of the proposed architecture
+---
 
-The proposed method consistently demonstrates improved restoration quality, greater robustness, and lower inference cost relative to baselines.
+## **Ablation and Sensitivity Analysis**
 
-Ablation and Analysis
+Experiments analyze:
 
-Comprehensive studies analyze:
+* Effect of uncertainty modulation
+* Impact of expert routing versus single-expert variants
+* Sensitivity to loss-weighting parameters
+* Performance under increasing noise severity
 
-The impact of uncertainty-aware routing
+Findings indicate that **architectural design dominates performance**, minimizing dependence on delicate hyperparameter tuning.
 
-The role of the MoE structure versus single-expert models
+---
 
-Sensitivity to loss weighting parameters
+## **Why Implicit SDEs?**
 
-Performance under varying Gamma noise severity
+Traditional score-based SDE methods:
 
-Robustness to mixed multiplicative–additive noise
+* Require costly iterative sampling
+* Accumulate discretization error
+* Are sensitive to multiplicative noise statistics
 
-Results show that architectural design dominates performance, reducing reliance on heavy regularization or fine-tuned hyperparameters.
+GMiSDE-Net:
 
-Why Implicit SDE?
+* Eliminates forward diffusion
+* Learns the terminal solution directly
+* Retains stochastic interpretability with lower computational cost
 
-Traditional score-based SDE models:
+---
 
-Require expensive reverse-time sampling
+## **Intended Use**
 
-Are sensitive to discretization error
+This work is relevant for:
 
-Struggle with multiplicative noise
+* Researchers in **inverse imaging problems**
+* Applications in **SAR, ultrasound, and speckle-dominated imaging**
+* Study of **stochastic modeling in deep neural networks**
 
-GMiSDE-Net avoids these limitations by:
+---
 
-Eliminating the forward diffusion process
+## **Author**
 
-Learning the terminal mapping directly
-
-Embedding uncertainty within the SDE parameterization
-
-Intended Audience
-
-This repository is intended for:
-
-Researchers in image restoration and inverse problems
-
-Practitioners working with SAR and ultrasound data
-
-Students studying stochastic modeling in deep learning
-
-Author
-
-Vanapala Nikhil Varma
+**Vanapala Nikhil Varma**
 Mahindra University, Hyderabad
 
-Research focus:
-Stochastic differential equations, uncertainty-aware deep learning, and inverse imaging problems.
+
+Just say the word.
